@@ -80,8 +80,9 @@ function assignToField(mapping: ColumnMapping, field: CoreField, col: string): C
 }
 
 function assignToExtra(mapping: ColumnMapping, col: string): ColumnMapping {
+  // Early return if already in extra zone — preserves user-edited label
+  if (mapping.customColumns.some(c => c.sourceColumn === col)) return mapping;
   const cleaned = removeColumn(mapping, col);
-  if (cleaned.customColumns.some(c => c.sourceColumn === col)) return cleaned;
   const newCustom: CustomColumn = { id: crypto.randomUUID(), label: col, sourceColumn: col };
   return { ...cleaned, customColumns: [...cleaned.customColumns, newCustom] };
 }
@@ -104,7 +105,10 @@ const label13: React.CSSProperties = {
 export function MappingSandbox({ headers, mapping, onChange, previewRows }: Props) {
   const [draggedCol, setDraggedCol] = useState<string | null>(null);
   const [hoveredZone, setHoveredZone] = useState<string | null>(null);
-  const [otherCurrency, setOtherCurrency] = useState('');
+  const [otherCurrency, setOtherCurrency] = useState(() => {
+    const isCommon = COMMON_CURRENCIES.some(c => c.code === mapping.forcedCurrency);
+    return isCommon ? '' : mapping.forcedCurrency;
+  });
   const [showOther, setShowOther] = useState(
     !COMMON_CURRENCIES.some(c => c.code === mapping.forcedCurrency)
   );
