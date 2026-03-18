@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import type { ColumnMapping, ParsedWorkbook, SheetData } from '../types';
+import type { ColumnMapping, ParsedWorkbook, SheetData, Donation } from '../types';
 
 export function parseWorkbook(file: File): Promise<ParsedWorkbook> {
   return new Promise((resolve, reject) => {
@@ -129,6 +129,7 @@ function resolveRowCurrency(
     const cols = Array.isArray(mapping.currency) ? mapping.currency : [mapping.currency];
     for (const c of cols) {
       const val = String(row[c] || '').toUpperCase().trim();
+      // Require at least 2 chars to avoid single-letter placeholders; bypasses resolveField intentionally (currency needs string coercion, not first-non-empty semantics)
       if (val.length >= 2) return val;
     }
   }
@@ -146,8 +147,6 @@ function resolveRowCurrency(
   // 3. User-chosen default
   return mapping.forcedCurrency || 'USD';
 }
-
-import type { Donation } from '../types';
 
 export function buildDonations(rows: Record<string, unknown>[], mapping: ColumnMapping): Donation[] {
   return rows
