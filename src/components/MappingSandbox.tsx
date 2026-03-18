@@ -82,7 +82,7 @@ function assignToField(mapping: ColumnMapping, field: CoreField, col: string): C
 function assignToExtra(mapping: ColumnMapping, col: string): ColumnMapping {
   const cleaned = removeColumn(mapping, col);
   if (cleaned.customColumns.some(c => c.sourceColumn === col)) return cleaned;
-  const newCustom: CustomColumn = { id: String(Date.now()), label: col, sourceColumn: col };
+  const newCustom: CustomColumn = { id: crypto.randomUUID(), label: col, sourceColumn: col };
   return { ...cleaned, customColumns: [...cleaned.customColumns, newCustom] };
 }
 
@@ -182,7 +182,10 @@ export function MappingSandbox({ headers, mapping, onChange, previewRows }: Prop
         </div>
         <div
           onDragOver={e => { e.preventDefault(); e.stopPropagation(); setHoveredZone('pool'); }}
-          onDragLeave={() => setHoveredZone(null)}
+          onDragLeave={e => {
+            if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+            setHoveredZone(null);
+          }}
           onDrop={e => { e.stopPropagation(); handleDropToPool(e); }}
           style={{
             display: 'flex', flexWrap: 'wrap', gap: 8, padding: 12,
@@ -237,7 +240,10 @@ export function MappingSandbox({ headers, mapping, onChange, previewRows }: Prop
               <div
                 key={key}
                 onDragOver={e => { e.preventDefault(); e.stopPropagation(); setHoveredZone(key); }}
-                onDragLeave={() => setHoveredZone(null)}
+                onDragLeave={e => {
+                  if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                  setHoveredZone(null);
+                }}
                 onDrop={e => handleDropToField(e, key)}
                 style={{
                   padding: '10px 12px', borderRadius: 'var(--radius-sm)', minHeight: 64,
@@ -301,7 +307,10 @@ export function MappingSandbox({ headers, mapping, onChange, previewRows }: Prop
         </p>
         <div
           onDragOver={e => { e.preventDefault(); e.stopPropagation(); setHoveredZone('extra'); }}
-          onDragLeave={() => setHoveredZone(null)}
+          onDragLeave={e => {
+            if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+            setHoveredZone(null);
+          }}
           onDrop={handleDropToExtra}
           style={{
             padding: 12, borderRadius: 'var(--radius-sm)', minHeight: 52, transition: 'all 150ms',
