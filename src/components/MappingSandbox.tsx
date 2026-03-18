@@ -127,6 +127,11 @@ export function MappingSandbox({ headers, mapping, onChange, previewRows }: Prop
     e.stopPropagation();
     setHoveredZone(null);
     if (!draggedCol) return;
+    // No-op if dropped back onto the same zone it already belongs to
+    if (getFieldColumns(mapping, field).includes(draggedCol)) {
+      setDraggedCol(null);
+      return;
+    }
     onChange(assignToField(mapping, field, draggedCol));
     setDraggedCol(null);
   };
