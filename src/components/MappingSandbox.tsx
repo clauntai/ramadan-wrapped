@@ -375,7 +375,7 @@ export function MappingSandbox({ headers, mapping, onChange, previewRows }: Prop
       {/* ── Divider ── */}
       <div style={{ height: 1, background: 'var(--border)' }} />
 
-      {/* ── Currency Fallback (preserved from ColumnMapper) ── */}
+      {/* ── Currency Fallback ── */}
       <div>
         <span style={label13}>Default Currency</span>
         <p style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 10, marginTop: -4 }}>
