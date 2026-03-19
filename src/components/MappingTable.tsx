@@ -19,8 +19,10 @@ function getSourceColumn(mapping: ColumnMapping, def: FieldDefinition): string {
   if (def.mappingKey === 'custom') {
     return mapping.customColumns.find(c => c.id === def.id)?.sourceColumn ?? '';
   }
-  const val = mapping[def.mappingKey as keyof ColumnMapping];
-  if (!val || typeof val !== 'string') return '';
+  const val = mapping[def.mappingKey as keyof ColumnMapping] as string | string[] | null;
+  if (!val) return '';
+  if (Array.isArray(val)) return val[0] ?? '';
+  if (typeof val !== 'string') return '';
   return val;
 }
 
