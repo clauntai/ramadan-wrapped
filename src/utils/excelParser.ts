@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import type { ColumnMapping, ParsedWorkbook, SheetData, Donation } from '../types';
+import { FIELD_DEFINITIONS } from './fieldDefinitions';
 
 export function parseWorkbook(file: File): Promise<ParsedWorkbook> {
   return new Promise((resolve, reject) => {
@@ -33,6 +34,10 @@ const ORG_HINTS = ['org', 'organization', 'charity', 'recipient', 'to', 'benefic
 const CATEGORY_HINTS = ['category', 'type', 'cause', 'purpose', 'kind', 'group', 'نوع', 'section', 'tag', 'department'];
 const NOTES_HINTS = ['note', 'notes', 'comment', 'description', 'detail', 'remark', 'ملاحظة', 'memo', 'desc', 'info'];
 const CURRENCY_HINTS = ['currency', 'curr', 'عملة', 'ccy'];
+const PAYMENT_STATUS_HINTS = ['status', 'payment status', 'state', 'transaction status'];
+const REFUND_AMOUNT_HINTS = ['refund', 'refunded', 'chargeback'];
+const RECURRING_STATUS_HINTS = ['recurring', 'recurrence', 'subscription', 'frequency'];
+const FUND_HINTS = ['fund', 'campaign', 'cause', 'appeal', 'designation'];
 
 function scoreColumn(header: string, hints: string[]): number {
   const h = header.toLowerCase().trim();
@@ -68,6 +73,10 @@ export function detectColumns(headers: string[]): ColumnMapping {
     categoryScore: scoreColumn(h, CATEGORY_HINTS),
     notesScore: scoreColumn(h, NOTES_HINTS),
     currencyScore: scoreColumn(h, CURRENCY_HINTS),
+    paymentStatusScore: scoreColumn(h, PAYMENT_STATUS_HINTS),
+    refundAmountScore: scoreColumn(h, REFUND_AMOUNT_HINTS),
+    recurringStatusScore: scoreColumn(h, RECURRING_STATUS_HINTS),
+    fundScore: scoreColumn(h, FUND_HINTS),
   }));
 
   const pick = (scoreKey: keyof typeof scored[0], threshold = 30): string | null => {
@@ -81,6 +90,35 @@ export function detectColumns(headers: string[]): ColumnMapping {
   mapping.category = pick('categoryScore');
   mapping.notes = pick('notesScore');
   mapping.currency = pick('currencyScore');
+  mapping.paymentStatus = pick('paymentStatusScore');
+  mapping.refundAmount = pick('refundAmountScore');
+  mapping.recurringStatus = pick('recurringStatusScore');
+  mapping.fund = pick('fundScore');
+
+  // Build set of already-assigned columns so info fields don't conflict
+  const assigned = new Set<string>(
+    [mapping.date, mapping.amount, mapping.organization, mapping.category,
+     mapping.notes, mapping.currency, mapping.paymentStatus, mapping.refundAmount,
+     mapping.recurringStatus, mapping.fund].filter(Boolean) as string[]
+  );
+
+  // Auto-detect informational fields (threshold 40 to avoid false positives)
+  for (const def of FIELD_DEFINITIONS) {
+    if (def.mappingKey !== 'custom') continue;
+    const best = headers
+      .filter(h => !assigned.has(h))
+      .map(h => ({ header: h, score: scoreColumn(h, def.autoDetectHints) }))
+      .sort((a, b) => b.score - a.score)[0];
+    if (best && best.score >= 40) {
+      // Use def.id (not randomUUID) so MappingTable can look up the entry by def.id
+      mapping.customColumns.push({
+        id: def.id,
+        label: def.label,
+        sourceColumn: best.header,
+      });
+      assigned.add(best.header);
+    }
+  }
 
   return mapping;
 }
