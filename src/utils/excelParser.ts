@@ -34,10 +34,10 @@ const ORG_HINTS = ['org', 'organization', 'charity', 'recipient', 'to', 'benefic
 const CATEGORY_HINTS = ['category', 'type', 'cause', 'purpose', 'kind', 'group', 'نوع', 'section', 'tag', 'department'];
 const NOTES_HINTS = ['note', 'notes', 'comment', 'description', 'detail', 'remark', 'ملاحظة', 'memo', 'desc', 'info'];
 const CURRENCY_HINTS = ['currency', 'curr', 'عملة', 'ccy'];
-const PAYMENT_STATUS_HINTS = ['status', 'payment status', 'state', 'transaction status'];
+const PAYMENT_STATUS_HINTS = ['status', 'payment status', 'transaction status'];
 const REFUND_AMOUNT_HINTS = ['refund', 'refunded', 'chargeback'];
 const RECURRING_STATUS_HINTS = ['recurring', 'recurrence', 'subscription', 'frequency'];
-const FUND_HINTS = ['fund', 'campaign', 'cause', 'appeal', 'designation'];
+const FUND_HINTS = ['fund', 'campaign', 'appeal', 'designation'];
 
 function scoreColumn(header: string, hints: string[]): number {
   const h = header.toLowerCase().trim();

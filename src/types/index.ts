@@ -16,7 +16,7 @@ export interface Donation {
 }
 
 export interface CustomColumn {
-  id: string;          // stable React key (crypto.randomUUID or Date.now())
+  id: string;          // stable key — auto-detected fields use FieldDefinition.id; user-added fields use crypto.randomUUID()
   label: string;       // user-defined display name shown in the table
   sourceColumn: string; // the Excel column header it maps to
 }
