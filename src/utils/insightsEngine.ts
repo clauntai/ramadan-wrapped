@@ -31,13 +31,13 @@ function detectRamadanYear(donations: Donation[]): number | null {
 }
 
 export function computeInsights(donations: Donation[]): DonationInsights {
-  const year = detectRamadanYear(donations);
-  const currency = donations[0]?.currency || 'SAR';
-
   // Step 1: effective donations — exclude failed/refunded statuses
   const effective = donations.filter(
     d => !FAILED_STATUSES.has(d.paymentStatus.toLowerCase().trim())
   );
+
+  const year = detectRamadanYear(effective);
+  const currency = (effective[0] ?? donations[0])?.currency || 'SAR';
 
   // Step 2: gross total (existing `total` field)
   const total = effective.reduce((s, d) => s + d.amount, 0);
