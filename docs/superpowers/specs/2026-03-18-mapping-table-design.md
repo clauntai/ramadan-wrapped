@@ -78,13 +78,19 @@ export interface FieldDefinition {
 
 ### Predefined Fields
 
+> **Note on multi-column mapping:** `MappingSandbox` supported multiple source columns per field (`string[]`). `MappingTable` uses single-select dropdowns, so each field maps to exactly one source column. This affects the existing `date`, `amount`, `organization`, `category`, `notes`, and `currency` fields — they remain `string | string[] | null` in the type for backward compatibility, but `MappingTable` will only ever write a `string` or `null` to them. The multi-column fallback logic in `resolveField()` is preserved and still works; it just won't be triggered unless a mapping was loaded from a prior session (which isn't supported anyway).
+
 #### Transaction Details
 
 | id | label | role | mappingKey | hints |
 |----|-------|------|------------|-------|
 | `date` | Payment Date | insight | `date` | date, day, when, time, dt |
 | `amount` | Total Amount | insight | `amount` | amount, sum, total, donation, value, price, payment, paid |
-| `paymentMethod` | Payment Method | info | custom | method, payment method, pay method, type |
+| `organization` | Organisation | insight | `organization` | org, organization, charity, recipient, to, beneficiary |
+| `category` | Category / Cause | insight | `category` | category, type, cause, purpose, kind, group |
+| `currency` | Currency Column | insight | `currency` | currency, curr, ccy |
+| `notes` | Notes | insight | `notes` | note, notes, comment, description, detail |
+| `paymentMethod` | Payment Method | info | custom | method, payment method, pay method |
 | `paymentStatus` | Payment Status | insight | `paymentStatus` | status, payment status, state, transaction status |
 | `payoutDate` | Payout Date | info | custom | payout, payout date, disbursement |
 | `extraDonation` | Extra Donation | info | custom | extra, tip, additional, add-on |
@@ -118,6 +124,8 @@ export interface FieldDefinition {
 
 ## Data Model Changes
 
+> **Implementation order:** `src/types/index.ts` must be updated first. `fieldDefinitions.ts` uses `keyof ColumnMapping` in its `mappingKey` type — it will not compile until the four new fields exist on `ColumnMapping`. `DonationContext.tsx` constructs a `defaultMapping` object literal; it must also be updated in the same pass to add the four new fields, or TypeScript will reject it.
+
 ### `src/types/index.ts`
 
 **`ColumnMapping`** — add four new insight fields:
@@ -133,7 +141,9 @@ export interface ColumnMapping {
   currency:     string | string[] | null;
   forcedCurrency: string;
   customColumns: CustomColumn[];
-  // new insight fields
+  // new insight fields — string | null (not string | string[] | null)
+  // because MappingTable uses single-select dropdowns; multi-column
+  // mapping is intentionally not supported for these fields.
   paymentStatus:   string | null;
   refundAmount:    string | null;
   recurringStatus: string | null;
@@ -184,13 +194,26 @@ export interface DonationInsights {
 **`detectColumns()`** — add hint arrays and scoring for new insight fields:
 
 ```ts
-const PAYMENT_STATUS_HINTS  = ['status', 'payment status', 'state', 'transaction status'];
-const REFUND_AMOUNT_HINTS   = ['refund', 'refunded', 'chargeback'];
+const PAYMENT_STATUS_HINTS   = ['status', 'payment status', 'state', 'transaction status'];
+const REFUND_AMOUNT_HINTS    = ['refund', 'refunded', 'chargeback'];
 const RECURRING_STATUS_HINTS = ['recurring', 'recurrence', 'subscription', 'frequency'];
 const FUND_HINTS             = ['fund', 'campaign', 'cause', 'appeal', 'designation'];
 ```
 
-Detected insight columns are assigned to the new `ColumnMapping` keys. Detected informational columns (from `FIELD_DEFINITIONS` entries with `mappingKey: 'custom'`) are pre-populated as `customColumns` entries with their predefined labels.
+The initialiser object inside `detectColumns()` must include the four new fields:
+
+```ts
+const mapping: ColumnMapping = {
+  date: null, amount: null, organization: null, category: null,
+  notes: null, currency: null, forcedCurrency: 'USD', customColumns: [],
+  // new
+  paymentStatus: null, refundAmount: null, recurringStatus: null, fund: null,
+};
+```
+
+**Insight field detection:** uses `scoreColumn()` with a threshold of 30 (same as existing fields). Best-scoring column above threshold is assigned to the corresponding `ColumnMapping` key.
+
+**Informational field auto-detection:** after scoring insight fields, `detectColumns()` iterates `FIELD_DEFINITIONS` entries where `mappingKey === 'custom'`. Each is scored against all headers using `scoreColumn()` at a threshold of 40 (slightly higher to reduce false positives for generic column names). On a match, the column is appended to `customColumns` with `label` set to `FieldDefinition.label` (the human-readable display label, e.g. `"First Name"`) and `sourceColumn` set to the matched header. **Conflict rule:** if a column has already been assigned to an insight field, it is skipped for informational auto-detection. Insight field assignment takes priority.
 
 **`buildDonations()`** — populate new `Donation` fields:
 
@@ -207,14 +230,15 @@ fund:            String(resolveField(row, mapping.fund) ?? '').trim(),
 
 ## Insights Engine Changes (`src/utils/insightsEngine.ts`)
 
-`computeInsights()` receives the full donation list and applies:
+`computeInsights()` receives the full donation list and applies the following in order:
 
-1. **Effective donations** = filter out rows where `paymentStatus` matches a failed-set: `['refunded', 'failed', 'cancelled', 'chargeback']` (case-insensitive). Used for all totals and counts.
-2. **Net total** = `sum(amount) - sum(refundAmount)` across effective donations.
-3. **Recurring breakdown** = group by `recurringStatus` → `recurringCount` / `oneTimeCount`.
-4. **Fund breakdown** = group by `fund` → `donationsByFund` / `topFund` (same pattern as existing `donationsByCategory`).
+1. **Effective donations** = filter out rows where `paymentStatus` (lowercased, trimmed) matches the failed-set: `['refunded', 'failed', 'cancelled', 'chargeback']`. A row excluded here is excluded from all further calculations including the refund subtraction — its `refundAmount` is not counted because the transaction is treated as if it never completed. Only rows that pass this filter are used for totals, counts, averages, and breakdowns.
+2. **Gross total** = `sum(amount)` across effective donations (same as existing `total`).
+3. **Net total** = gross total − `sum(refundAmount)` across effective donations. A row can be an effective donation (status is not in the failed-set) and still carry a partial refund (e.g. status = "Partially Refunded"). Net total accounts for those partial refunds.
+4. **Recurring breakdown** = group effective donations by `recurringStatus`. A row is counted as recurring if its `recurringStatus` (lowercased) contains `"recurring"`; otherwise one-time. Empty `recurringStatus` → one-time.
+5. **Fund breakdown** = group effective donations by `fund` → `donationsByFund` / `topFund` (same pattern as existing `donationsByCategory`). Empty `fund` → grouped under `"Undesignated"`.
 
-The `total` field retains the gross sum (pre-refund) for transparency. `netTotal` is the spendable figure shown prominently in the recap.
+The `total` field retains the gross sum for transparency. `netTotal` is the spendable figure shown prominently in the recap.
 
 ---
 
@@ -238,11 +262,15 @@ interface Props {
 ### Internal structure
 
 - Renders a `<table>` with `overflow-x: auto` wrapper
-- Header row: one `<th>` per active field (predefined + custom). Each `<th>` contains a `<select>` populated with `["", ...headers]`. Value = currently mapped source column or `""`.
-- On `<select>` change: calls `onChange` with updated mapping. For insight fields, updates the corresponding `ColumnMapping` key. For custom/info fields, updates `customColumns`.
+- Header row: one `<th>` per active field (predefined + custom). Each `<th>` contains a `<select>` populated with `["— Not mapped —", ...headers]`. Value = currently mapped source column or `""`.
+- On `<select>` change: calls `onChange` with updated mapping. For insight fields, updates the corresponding `ColumnMapping` key (`string | null`). For info/custom fields, updates the matching `customColumns` entry's `sourceColumn`, or removes the entry if `""` is selected.
 - Data rows (3–5): one `<td>` per column, value from `previewRows[n][sourceColumn]` or `—`.
-- `[+ Add]` th at the far right: click to append a new custom column row.
-- Tooltip on `<th>`: native `title` attribute showing `← ${sourceColumn}` when mapped.
+- `[+ Add]` th at the far right: clicking it appends a blank custom column entry (`{ id: crypto.randomUUID(), label: '', sourceColumn: '' }`) to `customColumns`. The new column's `<th>` renders an editable label input in place of a static label + its own source dropdown. If the user clicks elsewhere without filling in the label, the entry is removed (cancelled). Auto-committed once both label and sourceColumn are non-empty.
+- Tooltip on `<th>`: native `title` attribute showing `← ${sourceColumn}` when mapped, empty string when not mapped.
+
+### `forcedCurrency` picker
+
+The currency picker (pill buttons + "Other" input) is extracted into a shared `CurrencyPicker` component. `MappingTable` renders `<CurrencyPicker>` below the table, passing `mapping.forcedCurrency` and an `onChange` handler — identical behaviour to the current `MappingSandbox` implementation. The local state (`otherCurrency`, `showOther`) lives inside `CurrencyPicker`.
 
 ### Column ordering
 
@@ -254,11 +282,13 @@ Fields rendered left-to-right in `FIELD_DEFINITIONS` order (transaction group fi
 
 | File | Change |
 |------|--------|
-| `src/types/index.ts` | Add 4 fields to `ColumnMapping`, `Donation`; add new `DonationInsights` fields; add `FieldDefinition` type |
-| `src/utils/fieldDefinitions.ts` | **New** — `FIELD_DEFINITIONS` array |
-| `src/utils/excelParser.ts` | Add hint arrays; extend `detectColumns()` and `buildDonations()` |
+| `src/types/index.ts` | Add 4 fields to `ColumnMapping`, `Donation`; add new `DonationInsights` fields |
+| `src/utils/fieldDefinitions.ts` | **New** — `FieldDefinition` type + `FIELD_DEFINITIONS` array |
+| `src/context/DonationContext.tsx` | Add 4 new fields to `defaultMapping` object literal |
+| `src/utils/excelParser.ts` | Add hint arrays; extend `detectColumns()` initialiser and `buildDonations()` |
 | `src/utils/insightsEngine.ts` | Status filtering, net total, recurring/fund breakdowns |
 | `src/components/MappingTable.tsx` | **New** — table-based mapping UI |
+| `src/components/CurrencyPicker.tsx` | **New** — extracted from `MappingSandbox`; shared by `MappingTable` |
 | `src/components/MappingSandbox.tsx` | **Deleted** |
 | `src/pages/LandingPage.tsx` | Swap import name only |
 
