@@ -5,7 +5,7 @@ import {
   ChevronRight, Shield, Zap, BarChart3, AlertCircle, Tag,
 } from 'lucide-react';
 import { FileDropzone } from '../components/FileDropzone';
-import { MappingSandbox } from '../components/MappingSandbox';
+import { MappingTable } from '../components/MappingTable';
 import { CategoryReview } from '../components/CategoryReview';
 import { useDonation } from '../context/DonationContext';
 import { parseWorkbook, detectColumns, buildDonations } from '../utils/excelParser';
@@ -296,11 +296,12 @@ export function LandingPage() {
                 </div>
               </div>
 
-              <MappingSandbox
+              {/* slice(0, 5): MappingTable shows up to PREVIEW_ROW_COUNT=4 rows; 5 gives a small buffer */}
+              <MappingTable
                 headers={currentSheet.headers}
                 mapping={ctx.columnMapping}
                 onChange={ctx.setColumnMapping}
-                previewRows={currentSheet.rows.slice(0, 3)}
+                previewRows={currentSheet.rows.slice(0, 5)}
               />
 
               {error && (
