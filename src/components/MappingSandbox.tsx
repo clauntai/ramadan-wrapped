@@ -50,6 +50,11 @@ function getAllMappedColumns(mapping: ColumnMapping): Set<string> {
     if (Array.isArray(val)) val.forEach(v => mapped.add(v));
     else mapped.add(val);
   }
+  // Also include single-select insight fields
+  if (mapping.paymentStatus) mapped.add(mapping.paymentStatus);
+  if (mapping.refundAmount) mapped.add(mapping.refundAmount);
+  if (mapping.recurringStatus) mapped.add(mapping.recurringStatus);
+  if (mapping.fund) mapped.add(mapping.fund);
   mapping.customColumns.forEach(c => mapped.add(c.sourceColumn));
   return mapped;
 }
@@ -66,9 +71,23 @@ function removeColumn(mapping: ColumnMapping, col: string): ColumnMapping {
       patch[key] = null;
     }
   }
+  // Also handle new single-select insight fields
+  let paymentStatus = mapping.paymentStatus;
+  let refundAmount = mapping.refundAmount;
+  let recurringStatus = mapping.recurringStatus;
+  let fund = mapping.fund;
+  if (mapping.paymentStatus === col) paymentStatus = null;
+  if (mapping.refundAmount === col) refundAmount = null;
+  if (mapping.recurringStatus === col) recurringStatus = null;
+  if (mapping.fund === col) fund = null;
+
   return {
     ...mapping,
     ...patch,
+    paymentStatus,
+    refundAmount,
+    recurringStatus,
+    fund,
     customColumns: mapping.customColumns.filter(c => c.sourceColumn !== col),
   };
 }
@@ -76,7 +95,10 @@ function removeColumn(mapping: ColumnMapping, col: string): ColumnMapping {
 function assignToField(mapping: ColumnMapping, field: CoreField, col: string): ColumnMapping {
   const cleaned = removeColumn(mapping, col);
   const current = getFieldColumns(cleaned, field);
-  return { ...cleaned, [field]: current.length === 0 ? col : [...current, col] };
+  const newValue = current.length === 0 ? col : [...current, col];
+  const patch: Partial<Record<CoreField, string | string[]>> = { [field]: newValue };
+  const result = { ...cleaned, ...patch } as ColumnMapping;
+  return result;
 }
 
 function assignToExtra(mapping: ColumnMapping, col: string): ColumnMapping {

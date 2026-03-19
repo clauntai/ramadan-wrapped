@@ -8,6 +8,11 @@ export interface Donation {
   notes: string;
   customFields: Record<string, string>; // label → value (user-defined extra columns)
   rawRow: Record<string, unknown>;
+  // new
+  paymentStatus:   string;
+  refundAmount:    number;
+  recurringStatus: string;
+  fund:            string;
 }
 
 export interface CustomColumn {
@@ -25,6 +30,13 @@ export interface ColumnMapping {
   currency:     string | string[] | null;        // per-row currency column
   forcedCurrency: string;                         // default / override currency
   customColumns: CustomColumn[];                  // user-added extra columns
+  // new — string | null only (MappingTable uses single-select dropdowns)
+  // because MappingTable uses single-select dropdowns; multi-column
+  // mapping is intentionally not supported for these fields.
+  paymentStatus:   string | null;
+  refundAmount:    string | null;
+  recurringStatus: string | null;
+  fund:            string | null;
 }
 
 export interface SheetData {
@@ -53,6 +65,13 @@ export interface DonationInsights {
   last10NightsTotal: number;
   last10NightsCount: number;
   ramadanYear: number | null;
+  // new
+  netTotal:        number;
+  refundCount:     number;
+  recurringCount:  number;
+  oneTimeCount:    number;
+  donationsByFund: { name: string; amount: number; count: number }[];
+  topFund:         { name: string; amount: number; count: number } | null;
 }
 
 export interface AppState {

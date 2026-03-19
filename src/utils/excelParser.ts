@@ -54,6 +54,10 @@ export function detectColumns(headers: string[]): ColumnMapping {
     currency: null,
     forcedCurrency: 'USD',
     customColumns: [],
+    paymentStatus: null,
+    refundAmount: null,
+    recurringStatus: null,
+    fund: null,
   };
 
   const scored = headers.map((h) => ({
@@ -167,6 +171,10 @@ export function buildDonations(rows: Record<string, unknown>[], mapping: ColumnM
         notes: String(resolveField(row, mapping.notes) ?? '').trim(),
         customFields,
         rawRow: row,
+        paymentStatus: String(resolveField(row, mapping.paymentStatus) ?? '').trim(),
+        refundAmount: mapping.refundAmount ? parseAmount(resolveField(row, mapping.refundAmount)) : 0,
+        recurringStatus: String(resolveField(row, mapping.recurringStatus) ?? '').trim(),
+        fund: String(resolveField(row, mapping.fund) ?? '').trim(),
       };
     })
     .filter((d) => d.amount > 0);
