@@ -137,7 +137,7 @@ export function detectColumns(headers: string[]): ColumnMapping {
   for (const [key, col] of insightEntries) {
     if (col && assigned.has(col)) {
       // Another field already claimed this column — clear this one
-      (mapping as Record<string, unknown>)[key as string] = null;
+      (mapping as unknown as Record<string, unknown>)[key as string] = null;
     } else if (col) {
       assigned.add(col);
     }
