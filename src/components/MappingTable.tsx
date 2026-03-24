@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { X, Plus } from 'lucide-react';
 import type { ColumnMapping, CustomColumn } from '../types';
 import { FIELD_DEFINITIONS, type FieldDefinition } from '../utils/fieldDefinitions';
-import { CurrencyPicker } from './CurrencyPicker';
 
 interface Props {
   headers: string[];
@@ -96,9 +95,15 @@ export function MappingTable({ headers, mapping, onChange, previewRows }: Props)
     onChange({ ...mapping, customColumns: mapping.customColumns.filter(c => c.id !== id) });
   };
 
-  // Freeform custom columns: those in mapping.customColumns whose id is NOT a FIELD_DEFINITIONS id
   const predefinedIds = new Set(FIELD_DEFINITIONS.map(d => d.id));
+  // Freeform custom columns: those in mapping.customColumns whose id is NOT a FIELD_DEFINITIONS id
   const freeformCustom = mapping.customColumns.filter(c => !predefinedIds.has(c.id));
+
+  // Only render info (custom) fields if they've been auto-detected (present in customColumns).
+  // Insight fields always render — they drive analytics.
+  const visibleDefs = FIELD_DEFINITIONS.filter(def =>
+    def.role === 'insight' || mapping.customColumns.some(c => c.id === def.id)
+  );
 
   const thStyle: React.CSSProperties = {
     padding: '8px 10px',
@@ -124,11 +129,11 @@ export function MappingTable({ headers, mapping, onChange, previewRows }: Props)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div style={{ overflowX: 'auto', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+      <div style={{ overflowX: 'auto', border: '1px solid var(--border)' }}>
         <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 12 }}>
           <thead>
             <tr>
-              {FIELD_DEFINITIONS.map(def => {
+              {visibleDefs.map(def => {
                 const sourceCol = getSourceColumn(mapping, def);
                 const isMapped = !!sourceCol;
                 const isInsight = def.role === 'insight';
@@ -285,7 +290,7 @@ export function MappingTable({ headers, mapping, onChange, previewRows }: Props)
             {previewSlice.length === 0 ? (
               <tr>
                 <td
-                  colSpan={FIELD_DEFINITIONS.length + freeformCustom.length + 1}
+                  colSpan={visibleDefs.length + freeformCustom.length + 1}
                   style={{ ...tdStyle, textAlign: 'center', color: 'var(--text3)', padding: '20px' }}
                 >
                   No preview rows available
@@ -294,7 +299,7 @@ export function MappingTable({ headers, mapping, onChange, previewRows }: Props)
             ) : (
               previewSlice.map((row, rowIdx) => (
                 <tr key={rowIdx} style={{ background: rowIdx % 2 === 0 ? 'var(--surface)' : 'var(--surface2)' }}>
-                  {FIELD_DEFINITIONS.map(def => {
+                  {visibleDefs.map(def => {
                     const sourceCol = getSourceColumn(mapping, def);
                     return (
                       <td key={def.id} style={tdStyle}>
@@ -315,13 +320,6 @@ export function MappingTable({ headers, mapping, onChange, previewRows }: Props)
         </table>
       </div>
 
-      {/* Currency picker below table */}
-      <div style={{ height: 1, background: 'var(--border)' }} />
-      <CurrencyPicker
-        value={mapping.forcedCurrency}
-        onChange={fc => onChange({ ...mapping, forcedCurrency: fc })}
-        hasCurrencyColumn={!!mapping.currency}
-      />
     </div>
   );
 }

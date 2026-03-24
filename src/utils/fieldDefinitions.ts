@@ -18,119 +18,136 @@ export const FIELD_DEFINITIONS: FieldDefinition[] = [
   {
     id: 'date', label: 'Payment Date', group: 'transaction', role: 'insight',
     mappingKey: 'date',
-    autoDetectHints: ['date', 'day', 'when', 'time', 'on', 'dt'],
+    autoDetectHints: [
+      'date', 'payment date', 'transaction date', 'donation date', 'gift date',
+      'created', 'created at', 'created_at', 'charged on', 'paid on',
+      'received date', 'processed date', 'order date', 'charge date',
+      'timestamp', 'datetime', 'dt', 'when', 'تاريخ',
+    ],
   },
   {
     id: 'amount', label: 'Total Amount', group: 'transaction', role: 'insight', required: true,
     mappingKey: 'amount',
-    autoDetectHints: ['amount', 'sum', 'total', 'donation', 'value', 'price', 'payment', 'paid'],
+    autoDetectHints: [
+      'amount', 'donation amount', 'gift amount', 'total amount', 'gross amount',
+      'net amount', 'charge amount', 'payment amount', 'contribution amount',
+      'total', 'sum', 'value', 'gross', 'net', 'price',
+      'payment', 'paid', 'charged', 'contribution',
+      'مبلغ', 'دونيشن',
+    ],
   },
   {
     id: 'paymentStatus', label: 'Payment Status', group: 'transaction', role: 'insight',
     mappingKey: 'paymentStatus',
-    autoDetectHints: ['status', 'payment status', 'state', 'transaction status'],
+    autoDetectHints: [
+      'payment status', 'transaction status', 'order status', 'donation status',
+      'charge status', 'gift status', 'status',
+    ],
   },
   {
     id: 'refundAmount', label: 'Refund Amount', group: 'transaction', role: 'insight',
     mappingKey: 'refundAmount',
-    autoDetectHints: ['refund', 'refunded', 'chargeback'],
+    autoDetectHints: [
+      'refund', 'refunded', 'refund amount', 'chargeback', 'reversal', 'reversed',
+    ],
   },
   {
     id: 'recurringStatus', label: 'Recurring Status', group: 'transaction', role: 'insight',
     mappingKey: 'recurringStatus',
-    autoDetectHints: ['recurring', 'recurrence', 'subscription', 'frequency'],
-  },
-  {
-    id: 'fund', label: 'Fund', group: 'transaction', role: 'insight',
-    mappingKey: 'fund',
-    autoDetectHints: ['fund', 'campaign', 'cause', 'appeal', 'designation'],
+    autoDetectHints: [
+      'recurring', 'recurrence', 'subscription', 'frequency', 'recurring type',
+      'donation type', 'type of donation', 'pledge', 'installment',
+      'recurring gift', 'is recurring', 'recur', 'repeat',
+    ],
   },
   {
     id: 'organization', label: 'Organisation', group: 'transaction', role: 'insight',
     mappingKey: 'organization',
-    autoDetectHints: ['org', 'organization', 'charity', 'recipient', 'to', 'beneficiary'],
+    autoDetectHints: [
+      'organization', 'organisation', 'org', 'org name', 'charity', 'charity name',
+      'recipient', 'beneficiary', 'nonprofit', 'entity',
+      'company', 'company name', 'employer', 'business', 'جهة',
+    ],
   },
   {
     id: 'category', label: 'Category / Cause', group: 'transaction', role: 'insight',
     mappingKey: 'category',
-    autoDetectHints: ['category', 'type', 'cause', 'purpose', 'kind', 'group'],
-  },
-  {
-    id: 'currency', label: 'Currency Column', group: 'transaction', role: 'insight',
-    mappingKey: 'currency',
-    autoDetectHints: ['currency', 'curr', 'ccy'],
+    autoDetectHints: [
+      'category', 'category name', 'cause', 'cause name', 'cause title',
+      'campaign', 'campaign name', 'campaign title',
+      'sector', 'classification', 'theme', 'purpose', 'department', 'نوع',
+    ],
   },
   {
     id: 'notes', label: 'Notes', group: 'transaction', role: 'insight',
     mappingKey: 'notes',
-    autoDetectHints: ['note', 'notes', 'comment', 'description', 'detail', 'remark', 'memo'],
+    autoDetectHints: [
+      'note', 'notes', 'comment', 'comments', 'description', 'details', 'detail',
+      'remark', 'remarks', 'memo', 'message', 'donor message', 'donor note',
+      'tribute', 'in honor of', 'in memory of', 'desc', 'ملاحظة',
+    ],
   },
   // ── Transaction Details — info fields ─────────────────
   {
     id: 'paymentMethod', label: 'Payment Method', group: 'transaction', role: 'info',
     mappingKey: 'custom',
-    autoDetectHints: ['method', 'payment method', 'pay method'],
+    autoDetectHints: ['payment method', 'pay method', 'method of payment', 'tender', 'payment type'],
   },
   {
     id: 'payoutDate', label: 'Payout Date', group: 'transaction', role: 'info',
     mappingKey: 'custom',
-    autoDetectHints: ['payout', 'payout date', 'disbursement'],
+    autoDetectHints: ['payout date', 'payout', 'disbursement date', 'settlement date'],
   },
   {
     id: 'extraDonation', label: 'Extra Donation', group: 'transaction', role: 'info',
     mappingKey: 'custom',
-    autoDetectHints: ['extra', 'tip', 'additional', 'add-on'],
+    autoDetectHints: ['extra donation', 'tip', 'additional donation', 'add-on'],
   },
   {
     id: 'discount', label: 'Discount', group: 'transaction', role: 'info',
     mappingKey: 'custom',
-    autoDetectHints: ['discount', 'promo', 'coupon'],
+    autoDetectHints: ['discount', 'promo', 'coupon', 'promo code'],
   },
   // ── Buyer Information ──────────────────────────────────
   {
     id: 'firstName', label: 'First Name', group: 'buyer', role: 'info',
     mappingKey: 'custom',
-    autoDetectHints: ['first name', 'first', 'fname', 'given name'],
+    autoDetectHints: ['first name', 'firstname', 'fname', 'given name', 'donor first name'],
   },
   {
     id: 'lastName', label: 'Last Name', group: 'buyer', role: 'info',
     mappingKey: 'custom',
-    autoDetectHints: ['last name', 'last', 'lname', 'surname', 'family name'],
+    autoDetectHints: ['last name', 'lastname', 'lname', 'surname', 'family name', 'donor last name'],
   },
   {
     id: 'email', label: 'Email', group: 'buyer', role: 'info',
     mappingKey: 'custom',
-    autoDetectHints: ['email', 'e-mail', 'email address'],
-  },
-  {
-    id: 'companyName', label: 'Company Name', group: 'buyer', role: 'info',
-    mappingKey: 'custom',
-    autoDetectHints: ['company', 'employer', 'business'],
+    autoDetectHints: ['email', 'e-mail', 'email address', 'donor email'],
   },
   {
     id: 'address', label: 'Address', group: 'buyer', role: 'info',
     mappingKey: 'custom',
-    autoDetectHints: ['address', 'street', 'addr'],
+    autoDetectHints: ['address', 'street address', 'billing address', 'addr'],
   },
   {
     id: 'city', label: 'City', group: 'buyer', role: 'info',
     mappingKey: 'custom',
-    autoDetectHints: ['city', 'town', 'municipality'],
+    autoDetectHints: ['city', 'town', 'municipality', 'billing city'],
   },
   {
     id: 'postalCode', label: 'Postal Code', group: 'buyer', role: 'info',
     mappingKey: 'custom',
-    autoDetectHints: ['postal', 'zip', 'postcode', 'postal code'],
+    autoDetectHints: ['postal code', 'postcode', 'zip code', 'zip', 'postal'],
   },
   {
     id: 'state', label: 'State', group: 'buyer', role: 'info',
     mappingKey: 'custom',
-    autoDetectHints: ['state', 'province', 'region'],
+    autoDetectHints: ['state', 'province', 'region', 'billing state'],
   },
   {
     id: 'country', label: 'Country', group: 'buyer', role: 'info',
     mappingKey: 'custom',
-    autoDetectHints: ['country', 'nation'],
+    autoDetectHints: ['country', 'nation', 'billing country'],
   },
   {
     id: 'language', label: 'Language', group: 'buyer', role: 'info',
@@ -141,6 +158,6 @@ export const FIELD_DEFINITIONS: FieldDefinition[] = [
   {
     id: 'taxReceipt', label: 'Tax Receipt #', group: 'tax', role: 'info',
     mappingKey: 'custom',
-    autoDetectHints: ['tax receipt', 'receipt', 'receipt number', 'tax no'],
+    autoDetectHints: ['tax receipt', 'receipt number', 'receipt #', 'receipt no', 'receipt'],
   },
 ];

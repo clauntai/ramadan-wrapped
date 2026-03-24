@@ -12,7 +12,6 @@ export interface Donation {
   paymentStatus:   string;
   refundAmount:    number;
   recurringStatus: string;
-  fund:            string;
 }
 
 export interface CustomColumn {
@@ -27,8 +26,7 @@ export interface ColumnMapping {
   organization: string | string[] | null;
   category:     string | string[] | null;
   notes:        string | string[] | null;
-  currency:     string | string[] | null;        // per-row currency column
-  forcedCurrency: string;                         // default / override currency
+  forcedCurrency: string;                         // always 'USD'
   customColumns: CustomColumn[];                  // user-added extra columns
   // new — string | null only (MappingTable uses single-select dropdowns)
   // because MappingTable uses single-select dropdowns; multi-column
@@ -36,7 +34,6 @@ export interface ColumnMapping {
   paymentStatus:   string | null;
   refundAmount:    string | null;
   recurringStatus: string | null;
-  fund:            string | null;
 }
 
 export interface SheetData {
@@ -69,9 +66,10 @@ export interface DonationInsights {
   netTotal:        number;
   refundCount:     number;
   recurringCount:  number;
+  recurringTotal:  number;
   oneTimeCount:    number;
-  donationsByFund: { name: string; amount: number; count: number }[];
-  topFund:         { name: string; amount: number; count: number } | null;
+  oneTimeTotal:    number;
+  hasRecurringData: boolean;  // true if any donation has a non-empty recurringStatus
 }
 
 export interface AppState {

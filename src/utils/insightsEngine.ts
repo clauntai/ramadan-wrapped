@@ -5,7 +5,7 @@ import type { Donation, DonationInsights } from '../types';
 // Ramadan 2024: Mar 11 - Apr 9 | 2025: Mar 1 - Mar 29 | 2023: Mar 23 - Apr 20
 // Last 10 nights: days 21-30 of Ramadan
 
-const FAILED_STATUSES = new Set(['refunded', 'failed', 'cancelled', 'chargeback']);
+export const FAILED_STATUSES = new Set(['refunded', 'failed', 'cancelled', 'chargeback']);
 
 const RAMADAN_RANGES: Record<number, [Date, Date]> = {
   2025: [new Date(2025, 2, 1), new Date(2025, 2, 30)],
@@ -66,23 +66,23 @@ export function computeInsights(donations: Donation[]): DonationInsights {
     (best, d) => (!best || d.amount > best.amount ? d : best), null
   );
 
-  // By category
+  // By category — skip rows with no category
   const categoryMap = new Map<string, { name: string; amount: number; count: number }>();
   for (const d of effective) {
-    const key = d.category || 'Uncategorized';
-    const existing = categoryMap.get(key);
+    if (!d.category) continue;
+    const existing = categoryMap.get(d.category);
     if (existing) { existing.amount += d.amount; existing.count++; }
-    else categoryMap.set(key, { name: key, amount: d.amount, count: 1 });
+    else categoryMap.set(d.category, { name: d.category, amount: d.amount, count: 1 });
   }
   const donationsByCategory = Array.from(categoryMap.values()).sort((a, b) => b.amount - a.amount);
 
-  // By organization
+  // By organization — skip rows with no organization
   const orgMap = new Map<string, { name: string; amount: number; count: number }>();
   for (const d of effective) {
-    const key = d.organization || 'Unknown';
-    const existing = orgMap.get(key);
+    if (!d.organization) continue;
+    const existing = orgMap.get(d.organization);
     if (existing) { existing.amount += d.amount; existing.count++; }
-    else orgMap.set(key, { name: key, amount: d.amount, count: 1 });
+    else orgMap.set(d.organization, { name: d.organization, amount: d.amount, count: 1 });
   }
   const donationsByOrganization = Array.from(orgMap.values()).sort((a, b) => b.amount - a.amount);
 
@@ -101,24 +101,24 @@ export function computeInsights(donations: Donation[]): DonationInsights {
     }
   }
 
-  // Step 4: recurring breakdown — a row is recurring if recurringStatus contains "recurring"
+  // Step 4: recurring breakdown
+  // A row is recurring if its recurringStatus value signals recurrence.
+  // Handles: "Recurring", "Yes", "true", "1", "Monthly", "Weekly", "Annual", "Subscription", etc.
+  const RECURRING_POSITIVE = /recurring|recur|subscription|monthly|weekly|annual|yearly|regular|\byes\b|\btrue\b/i;
   let recurringCount = 0;
+  let recurringTotal = 0;
   let oneTimeCount = 0;
+  let oneTimeTotal = 0;
+  const hasRecurringData = effective.some(d => d.recurringStatus.trim() !== '');
   for (const d of effective) {
-    if (d.recurringStatus.toLowerCase().includes('recurring')) recurringCount++;
-    else oneTimeCount++;
+    const val = d.recurringStatus.trim();
+    const isRecurring = val !== '' && (RECURRING_POSITIVE.test(val) || val === '1');
+    if (isRecurring) {
+      recurringCount++; recurringTotal += d.amount;
+    } else {
+      oneTimeCount++; oneTimeTotal += d.amount;
+    }
   }
-
-  // Step 5: fund breakdown
-  const fundMap = new Map<string, { name: string; amount: number; count: number }>();
-  for (const d of effective) {
-    const key = d.fund || 'Undesignated';
-    const existing = fundMap.get(key);
-    if (existing) { existing.amount += d.amount; existing.count++; }
-    else fundMap.set(key, { name: key, amount: d.amount, count: 1 });
-  }
-  const donationsByFund = Array.from(fundMap.values()).sort((a, b) => b.amount - a.amount);
-  const topFund = donationsByFund[0] || null;
 
   return {
     total,
@@ -138,9 +138,10 @@ export function computeInsights(donations: Donation[]): DonationInsights {
     netTotal,
     refundCount,
     recurringCount,
+    recurringTotal,
     oneTimeCount,
-    donationsByFund,
-    topFund,
+    oneTimeTotal,
+    hasRecurringData,
   };
 }
 

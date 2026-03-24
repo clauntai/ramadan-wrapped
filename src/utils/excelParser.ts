@@ -28,25 +28,63 @@ export function parseWorkbook(file: File): Promise<ParsedWorkbook> {
   });
 }
 
-const DATE_HINTS = ['date', 'day', 'when', 'time', 'on', 'dt', 'تاريخ'];
-const AMOUNT_HINTS = ['amount', 'sum', 'total', 'donation', 'value', 'price', 'مبلغ', 'payment', 'paid', 'sar', 'usd', 'egp', 'qar', 'aed', 'kwd', 'gbp', 'eur', 'دونيشن'];
-const ORG_HINTS = ['org', 'organization', 'charity', 'recipient', 'to', 'beneficiary', 'name', 'جهة', 'cause name', 'entity'];
-const CATEGORY_HINTS = ['category', 'type', 'cause', 'purpose', 'kind', 'group', 'نوع', 'section', 'tag', 'department'];
-const NOTES_HINTS = ['note', 'notes', 'comment', 'description', 'detail', 'remark', 'ملاحظة', 'memo', 'desc', 'info'];
-const CURRENCY_HINTS = ['currency', 'curr', 'عملة', 'ccy'];
-const PAYMENT_STATUS_HINTS = ['status', 'payment status', 'transaction status'];
-const REFUND_AMOUNT_HINTS = ['refund', 'refunded', 'chargeback'];
-const RECURRING_STATUS_HINTS = ['recurring', 'recurrence', 'subscription', 'frequency'];
-const FUND_HINTS = ['fund', 'campaign', 'appeal', 'designation'];
+const DATE_HINTS = [
+  'date', 'payment date', 'transaction date', 'donation date', 'gift date',
+  'created', 'created at', 'created_at', 'charged on', 'paid on',
+  'received date', 'processed date', 'order date', 'charge date',
+  'timestamp', 'datetime', 'dt', 'تاريخ',
+];
+const AMOUNT_HINTS = [
+  'amount', 'donation amount', 'gift amount', 'total amount', 'gross amount',
+  'net amount', 'charge amount', 'payment amount', 'contribution amount',
+  'total', 'sum', 'value', 'gross', 'net', 'price',
+  'payment', 'paid', 'charged', 'contribution',
+  'مبلغ', 'دونيشن',
+];
+const ORG_HINTS = [
+  'organization', 'organisation', 'org', 'org name', 'charity', 'charity name',
+  'recipient', 'beneficiary', 'nonprofit', 'entity',
+  'company', 'company name', 'employer', 'business', 'جهة',
+];
+const CATEGORY_HINTS = [
+  'category', 'category name', 'cause', 'cause name', 'cause title',
+  'campaign', 'campaign name', 'campaign title',
+  'sector', 'classification', 'theme', 'purpose', 'department', 'نوع',
+];
+const NOTES_HINTS = [
+  'note', 'notes', 'comment', 'comments', 'description', 'details', 'detail',
+  'remark', 'remarks', 'memo', 'message', 'donor message', 'donor note',
+  'tribute', 'in honor of', 'in memory of', 'desc', 'ملاحظة',
+];
+const PAYMENT_STATUS_HINTS = [
+  'payment status', 'transaction status', 'order status', 'donation status',
+  'charge status', 'gift status', 'status',
+];
+const REFUND_AMOUNT_HINTS = [
+  'refund', 'refunded', 'refund amount', 'chargeback', 'reversal', 'reversed',
+];
+const RECURRING_STATUS_HINTS = [
+  'recurring', 'recurrence', 'subscription', 'frequency', 'recurring type',
+  'donation type', 'type of donation', 'pledge', 'installment',
+  'recurring gift', 'is recurring', 'recur', 'repeat',
+];
 
 function scoreColumn(header: string, hints: string[]): number {
   const h = header.toLowerCase().trim();
+  let best = 0;
   for (const hint of hints) {
-    if (h === hint) return 100;
-    if (h.includes(hint)) return 60;
-    if (hint.includes(h)) return 40;
+    const hl = hint.toLowerCase();
+    if (h === hl) { best = Math.max(best, 100); continue; }
+    // Word-boundary match: header words match hint words
+    if (h.includes(hl) && (h.startsWith(hl) || h.endsWith(hl) || h.includes(` ${hl}`) || h.includes(`${hl} `))) {
+      best = Math.max(best, 75);
+      continue;
+    }
+    if (h.includes(hl)) { best = Math.max(best, 55); continue; }
+    // Only allow reverse-contains for hints of 4+ chars to avoid short false positives
+    if (hl.length >= 4 && hl.includes(h)) { best = Math.max(best, 35); }
   }
-  return 0;
+  return best;
 }
 
 export function detectColumns(headers: string[]): ColumnMapping {
@@ -56,51 +94,54 @@ export function detectColumns(headers: string[]): ColumnMapping {
     organization: null,
     category: null,
     notes: null,
-    currency: null,
     forcedCurrency: 'USD',
     customColumns: [],
     paymentStatus: null,
     refundAmount: null,
     recurringStatus: null,
-    fund: null,
   };
 
   const scored = headers.map((h) => ({
     header: h,
-    dateScore: scoreColumn(h, DATE_HINTS),
-    amountScore: scoreColumn(h, AMOUNT_HINTS),
-    orgScore: scoreColumn(h, ORG_HINTS),
-    categoryScore: scoreColumn(h, CATEGORY_HINTS),
-    notesScore: scoreColumn(h, NOTES_HINTS),
-    currencyScore: scoreColumn(h, CURRENCY_HINTS),
-    paymentStatusScore: scoreColumn(h, PAYMENT_STATUS_HINTS),
-    refundAmountScore: scoreColumn(h, REFUND_AMOUNT_HINTS),
-    recurringStatusScore: scoreColumn(h, RECURRING_STATUS_HINTS),
-    fundScore: scoreColumn(h, FUND_HINTS),
+    dateScore:           scoreColumn(h, DATE_HINTS),
+    amountScore:         scoreColumn(h, AMOUNT_HINTS),
+    orgScore:            scoreColumn(h, ORG_HINTS),
+    categoryScore:       scoreColumn(h, CATEGORY_HINTS),
+    notesScore:          scoreColumn(h, NOTES_HINTS),
+    paymentStatusScore:  scoreColumn(h, PAYMENT_STATUS_HINTS),
+    refundAmountScore:   scoreColumn(h, REFUND_AMOUNT_HINTS),
+    recurringStatusScore:scoreColumn(h, RECURRING_STATUS_HINTS),
   }));
 
-  const pick = (scoreKey: keyof typeof scored[0], threshold = 30): string | null => {
+  const pick = (scoreKey: keyof typeof scored[0], threshold = 40): string | null => {
     const best = [...scored].sort((a, b) => (b[scoreKey] as number) - (a[scoreKey] as number))[0];
     return best && (best[scoreKey] as number) >= threshold ? best.header : null;
   };
 
-  mapping.date = pick('dateScore');
-  mapping.amount = pick('amountScore');
-  mapping.organization = pick('orgScore');
-  mapping.category = pick('categoryScore');
-  mapping.notes = pick('notesScore');
-  mapping.currency = pick('currencyScore');
-  mapping.paymentStatus = pick('paymentStatusScore');
-  mapping.refundAmount = pick('refundAmountScore');
+  mapping.date            = pick('dateScore');
+  mapping.amount          = pick('amountScore');
+  mapping.organization    = pick('orgScore');
+  mapping.category        = pick('categoryScore');
+  mapping.notes           = pick('notesScore');
+  mapping.paymentStatus   = pick('paymentStatusScore');
+  mapping.refundAmount    = pick('refundAmountScore');
   mapping.recurringStatus = pick('recurringStatusScore');
-  mapping.fund = pick('fundScore');
 
-  // Build set of already-assigned columns so info fields don't conflict
-  const assigned = new Set<string>(
-    [mapping.date, mapping.amount, mapping.organization, mapping.category,
-     mapping.notes, mapping.currency, mapping.paymentStatus, mapping.refundAmount,
-     mapping.recurringStatus, mapping.fund].filter(Boolean) as string[]
-  );
+  // Ensure no two insight fields claim the same column (higher-scoring field wins)
+  const insightEntries: [keyof ColumnMapping, string | null][] = [
+    ['date', mapping.date], ['amount', mapping.amount], ['organization', mapping.organization],
+    ['category', mapping.category], ['notes', mapping.notes], ['paymentStatus', mapping.paymentStatus],
+    ['refundAmount', mapping.refundAmount], ['recurringStatus', mapping.recurringStatus],
+  ];
+  const assigned = new Set<string>();
+  for (const [key, col] of insightEntries) {
+    if (col && assigned.has(col)) {
+      // Another field already claimed this column — clear this one
+      (mapping as Record<string, unknown>)[key as string] = null;
+    } else if (col) {
+      assigned.add(col);
+    }
+  }
 
   // Auto-detect informational fields (threshold 40 to avoid false positives)
   for (const def of FIELD_DEFINITIONS) {
@@ -162,31 +203,7 @@ function resolveField(row: Record<string, unknown>, col: string | string[] | nul
   return null;
 }
 
-function resolveRowCurrency(
-  row: Record<string, unknown>,
-  mapping: ColumnMapping,
-): string {
-  // 1. Per-row currency column (supports multi-column)
-  if (mapping.currency) {
-    const cols = Array.isArray(mapping.currency) ? mapping.currency : [mapping.currency];
-    for (const c of cols) {
-      const val = String(row[c] || '').toUpperCase().trim();
-      // Require at least 2 chars to avoid single-letter placeholders; bypasses resolveField intentionally (currency needs string coercion, not first-non-empty semantics)
-      if (val.length >= 2) return val;
-    }
-  }
-  // 2. Symbol embedded in the amount cell
-  if (mapping.amount) {
-    const amountCol = Array.isArray(mapping.amount) ? mapping.amount[0] : mapping.amount;
-    const str = String(row[amountCol] || '');
-    const symbolMap: Record<string, string> = { '$': 'USD', '£': 'GBP', '€': 'EUR', '﷼': 'SAR', 'ر.س': 'SAR' };
-    for (const [sym, code] of Object.entries(symbolMap)) {
-      if (str.includes(sym)) return code;
-    }
-    const isoMatch = str.match(/\b([A-Z]{3})\b/);
-    if (isoMatch) return isoMatch[1];
-  }
-  // 3. User-chosen default
+function resolveRowCurrency(mapping: ColumnMapping): string {
   return mapping.forcedCurrency || 'USD';
 }
 
@@ -203,7 +220,7 @@ export function buildDonations(rows: Record<string, unknown>[], mapping: ColumnM
         id: `donation-${i}`,
         date: mapping.date ? parseDate(resolveField(row, mapping.date)) : null,
         amount: mapping.amount ? parseAmount(resolveField(row, mapping.amount)) : 0,
-        currency: resolveRowCurrency(row, mapping),
+        currency: resolveRowCurrency(mapping),
         organization: String(resolveField(row, mapping.organization) ?? '').trim(),
         category: String(resolveField(row, mapping.category) ?? '').trim(),
         notes: String(resolveField(row, mapping.notes) ?? '').trim(),
@@ -212,7 +229,6 @@ export function buildDonations(rows: Record<string, unknown>[], mapping: ColumnM
         paymentStatus: String(resolveField(row, mapping.paymentStatus) ?? '').trim(),
         refundAmount: mapping.refundAmount ? parseAmount(resolveField(row, mapping.refundAmount)) : 0,
         recurringStatus: String(resolveField(row, mapping.recurringStatus) ?? '').trim(),
-        fund: String(resolveField(row, mapping.fund) ?? '').trim(),
       };
     })
     .filter((d) => d.amount > 0);

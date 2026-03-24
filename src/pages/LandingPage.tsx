@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Moon, Sun, Upload, FileSpreadsheet,
-  ChevronRight, Shield, Zap, BarChart3, AlertCircle, Tag,
+  ChevronRight, Shield, Zap, BarChart3, AlertCircle, Tag, History, Trash2,
 } from 'lucide-react';
 import { FileDropzone } from '../components/FileDropzone';
 import { MappingTable } from '../components/MappingTable';
@@ -35,6 +35,7 @@ function useTheme() {
 export function LandingPage() {
   const navigate = useNavigate();
   const ctx = useDonation();
+  const { restoredFromCache } = ctx;
   const { theme, toggle } = useTheme();
 
   // wizard state
@@ -149,16 +150,18 @@ export function LandingPage() {
         background: 'var(--surface)', borderBottom: '1px solid var(--border)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         position: 'sticky', top: 0, zIndex: 50,
+        boxShadow: 'var(--shadow-sm)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{
-            width: 28, height: 28, borderRadius: 6,
-            background: 'var(--green-bg)', border: '1px solid var(--green-ring)',
+            width: 30, height: 30, borderRadius: 8,
+            background: 'var(--green-gradient)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 2px 8px rgba(22,163,74,0.4)',
           }}>
-            <Moon size={15} color="var(--green)" />
+            <Moon size={15} color="white" />
           </div>
-          <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.3px' }}>
+          <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.4px' }}>
             Ramadan Wrapped
           </span>
         </div>
@@ -180,31 +183,88 @@ export function LandingPage() {
 
       {/* ── Main ── */}
       <main style={{ flex: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '48px 24px 80px' }}>
-        <div style={{ width: '100%', maxWidth: step === 2 ? 780 : 640 }}>
+        <div style={{ width: '100%', maxWidth: step === 1 ? 1100 : step === 2 ? 780 : 640 }}>
 
           {/* Hero */}
-          <div style={{ textAlign: 'center', marginBottom: 36 }}>
+          <div className="animate-fade-up" style={{ textAlign: 'center', marginBottom: 40 }}>
             <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: '4px 12px', borderRadius: 20,
+              display: 'inline-flex', alignItems: 'center', gap: 7,
+              padding: '5px 14px', borderRadius: 24,
               background: 'var(--green-bg)', border: '1px solid var(--green-ring)',
-              fontSize: 12, fontWeight: 600, color: 'var(--green)',
-              letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 16,
+              fontSize: 11, fontWeight: 700, color: 'var(--green)',
+              letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 20,
             }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)' }} />
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)', boxShadow: '0 0 6px rgba(34,197,94,0.6)' }} />
               Ramadan {new Date().getFullYear()}
             </div>
             <h1 style={{
-              fontSize: 'clamp(26px, 5vw, 42px)', fontWeight: 700,
-              color: 'var(--text)', letterSpacing: '-0.7px', lineHeight: 1.15,
-              marginBottom: 12,
+              fontSize: 'clamp(28px, 5.5vw, 48px)', fontWeight: 800,
+              color: 'var(--text)', letterSpacing: '-1.2px', lineHeight: 1.1,
+              marginBottom: 16,
             }}>
-              Your Giving, Visualised
+              Your Fundraising,{' '}
+              <span style={{
+                background: 'var(--green-gradient)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}>Visualised</span>
             </h1>
-            <p style={{ fontSize: 15, color: 'var(--text2)', lineHeight: 1.7, maxWidth: 440, margin: '0 auto' }}>
+            <p style={{ fontSize: 16, color: 'var(--text2)', lineHeight: 1.75, maxWidth: 420, margin: '0 auto' }}>
               Upload any donation spreadsheet and get an instant financial recap — charts, totals, and insights.
             </p>
           </div>
+
+          {/* Resume session banner */}
+          {step === 0 && restoredFromCache && ctx.insights && (
+            <div className="animate-fade-up" style={{
+              display: 'flex', alignItems: 'center', gap: 14,
+              padding: '14px 18px', marginBottom: 20,
+              background: 'var(--green-bg)', border: '1px solid var(--green-ring)',
+              borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-sm)',
+            }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+                background: 'var(--green-gradient)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <History size={16} color="white" />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 1 }}>
+                  Session saved
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {ctx.workbook?.fileName} · {ctx.donations.length.toLocaleString()} donations cached
+                </div>
+              </div>
+              <button
+                onClick={() => navigate('/recap')}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '7px 14px', borderRadius: 8, cursor: 'pointer',
+                  background: 'var(--green)', border: 'none',
+                  color: '#fff', fontSize: 12, fontWeight: 700, flexShrink: 0,
+                }}
+              >
+                Continue <ChevronRight size={13} />
+              </button>
+              <button
+                onClick={reset}
+                aria-label="Clear cached session"
+                style={{
+                  width: 32, height: 32, borderRadius: 8, cursor: 'pointer', flexShrink: 0,
+                  background: 'transparent', border: '1px solid var(--border)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: 'var(--text3)', transition: 'all 150ms',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--red)'; e.currentTarget.style.color = 'var(--red)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text3)'; }}
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
+          )}
 
           {/* Step indicator (steps 1-3) */}
           {step > 0 && (
@@ -239,60 +299,62 @@ export function LandingPage() {
 
           {/* ─── Step 1: Map columns ─── */}
           {step === 1 && currentSheet && (
-            <div style={card}>
-              {/* Sheet picker (collapsed by default if only 1 sheet) */}
-              {sheets.length > 1 && (
-                <div style={{ marginBottom: 18 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <span style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Sheet</span>
-                    <button onClick={() => setSheetPicker(v => !v)}
-                      style={{ fontSize: 12, color: 'var(--green)', background: 'none', border: 'none', fontWeight: 600, cursor: 'pointer' }}>
-                      Change
-                    </button>
+            <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
+              <div style={{ padding: '20px 24px 0' }}>
+                {/* Sheet picker (collapsed by default if only 1 sheet) */}
+                {sheets.length > 1 && (
+                  <div style={{ marginBottom: 18 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <span style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Sheet</span>
+                      <button onClick={() => setSheetPicker(v => !v)}
+                        style={{ fontSize: 12, color: 'var(--green)', background: 'none', border: 'none', fontWeight: 600, cursor: 'pointer' }}>
+                        Change
+                      </button>
+                    </div>
+                    {sheetPicker ? (
+                      <div style={{ display: 'grid', gap: 6 }}>
+                        {sheets.map(sh => (
+                          <button key={sh.name} onClick={() => handleSheetSelect(sh.name)}
+                            style={{
+                              padding: '9px 14px', background: sh.name === selectedSheetName ? 'var(--green-bg)' : 'var(--surface2)',
+                              border: `1px solid ${sh.name === selectedSheetName ? 'var(--green-ring)' : 'var(--border)'}`,
+                              borderRadius: 'var(--radius-sm)',
+                              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                              color: 'var(--text)', fontSize: 13, fontWeight: 500,
+                            }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                              <FileSpreadsheet size={13} color="var(--green)" /> {sh.name}
+                            </span>
+                            <span className="num" style={{ fontSize: 11, color: 'var(--text3)' }}>{sh.rows.length.toLocaleString()} rows</span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{
+                        padding: '8px 12px', background: 'var(--green-bg)',
+                        border: '1px solid var(--green-ring)', borderRadius: 'var(--radius-sm)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        fontSize: 13,
+                      }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                          <FileSpreadsheet size={13} color="var(--green)" />
+                          <strong style={{ color: 'var(--text)' }}>{selectedSheetName}</strong>
+                        </span>
+                        <span className="num" style={{ fontSize: 11, color: 'var(--text3)' }}>{currentSheet.rows.length.toLocaleString()} rows · {currentSheet.headers.length} cols</span>
+                      </div>
+                    )}
                   </div>
-                  {sheetPicker ? (
-                    <div style={{ display: 'grid', gap: 6 }}>
-                      {sheets.map(sh => (
-                        <button key={sh.name} onClick={() => handleSheetSelect(sh.name)}
-                          style={{
-                            padding: '9px 14px', background: sh.name === selectedSheetName ? 'var(--green-bg)' : 'var(--surface2)',
-                            border: `1px solid ${sh.name === selectedSheetName ? 'var(--green-ring)' : 'var(--border)'}`,
-                            borderRadius: 'var(--radius-sm)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                            color: 'var(--text)', fontSize: 13, fontWeight: 500,
-                          }}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                            <FileSpreadsheet size={13} color="var(--green)" /> {sh.name}
-                          </span>
-                          <span className="num" style={{ fontSize: 11, color: 'var(--text3)' }}>{sh.rows.length.toLocaleString()} rows</span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <div style={{
-                      padding: '8px 12px', background: 'var(--green-bg)',
-                      border: '1px solid var(--green-ring)', borderRadius: 'var(--radius-sm)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      fontSize: 13,
-                    }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                        <FileSpreadsheet size={13} color="var(--green)" />
-                        <strong style={{ color: 'var(--text)' }}>{selectedSheetName}</strong>
-                      </span>
-                      <span className="num" style={{ fontSize: 11, color: 'var(--text3)' }}>{currentSheet.rows.length.toLocaleString()} rows · {currentSheet.headers.length} cols</span>
-                    </div>
-                  )}
-                </div>
-              )}
+                )}
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>Map Columns</h2>
-                <div style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 4,
-                  fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 20,
-                  background: 'var(--green-bg)', color: 'var(--green)',
-                }}>
-                  <Zap size={9} /> Auto-detected
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>Map Columns</h2>
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 20,
+                    background: 'var(--green-bg)', color: 'var(--green)',
+                  }}>
+                    <Zap size={9} /> Auto-detected
+                  </div>
                 </div>
               </div>
 
@@ -304,35 +366,37 @@ export function LandingPage() {
                 previewRows={currentSheet.rows.slice(0, 5)}
               />
 
-              {error && (
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 7, marginTop: 14,
-                  padding: '9px 12px', borderRadius: 'var(--radius-sm)',
-                  background: 'var(--red-bg)', border: '1px solid rgba(220,38,38,0.2)',
-                  fontSize: 13, color: 'var(--red)',
-                }}>
-                  <AlertCircle size={13} /> {error}
-                </div>
-              )}
+              <div style={{ padding: '0 24px 20px' }}>
+                {error && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 7, marginTop: 14,
+                    padding: '9px 12px', borderRadius: 'var(--radius-sm)',
+                    background: 'var(--red-bg)', border: '1px solid rgba(220,38,38,0.2)',
+                    fontSize: 13, color: 'var(--red)',
+                  }}>
+                    <AlertCircle size={13} /> {error}
+                  </div>
+                )}
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 22, gap: 10 }}>
-                <button onClick={reset} style={{
-                  padding: '8px 16px', background: 'none',
-                  border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
-                  fontSize: 13, color: 'var(--text2)', fontWeight: 500,
-                }}>← Start over</button>
-                <button onClick={handleMapContinue} style={{
-                  padding: '9px 20px', background: 'var(--green)', border: 'none',
-                  borderRadius: 'var(--radius-sm)', color: 'white',
-                  fontSize: 13, fontWeight: 600,
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  transition: 'opacity 150ms',
-                }}
-                  onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
-                  onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-                >
-                  Continue <ChevronRight size={14} />
-                </button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 22, gap: 10 }}>
+                  <button onClick={reset} style={{
+                    padding: '8px 16px', background: 'none',
+                    border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
+                    fontSize: 13, color: 'var(--text2)', fontWeight: 500,
+                  }}>← Start over</button>
+                  <button onClick={handleMapContinue} style={{
+                    padding: '9px 20px', background: 'var(--green)', border: 'none',
+                    borderRadius: 'var(--radius-sm)', color: 'white',
+                    fontSize: 13, fontWeight: 600,
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    transition: 'opacity 150ms',
+                  }}
+                    onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
+                    onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                  >
+                    Continue <ChevronRight size={14} />
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -397,19 +461,32 @@ export function LandingPage() {
 
           {/* Feature strip (upload step only) */}
           {step === 0 && !loading && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginTop: 32 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginTop: 36 }}>
               {[
-                { icon: <Upload size={15} />, t: 'Any Format', d: '.xlsx, .xls, .csv — no template' },
-                { icon: <Zap size={15} />, t: 'Smart Mapping', d: 'Columns & categories auto-detected' },
-                { icon: <BarChart3 size={15} />, t: 'Full Dashboard', d: 'Charts, KPIs & insights' },
-              ].map(({ icon, t, d }) => (
-                <div key={t} style={{
-                  padding: '16px 14px', background: 'var(--surface)',
-                  border: '1px solid var(--border)', borderRadius: 'var(--radius)',
-                }}>
-                  <div style={{ color: 'var(--green)', marginBottom: 7 }}>{icon}</div>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 3 }}>{t}</p>
-                  <p style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.5 }}>{d}</p>
+                { icon: <Upload size={16} />, t: 'Any Format', d: '.xlsx, .xls, .csv — no template needed' },
+                { icon: <Zap size={16} />, t: 'Smart Mapping', d: 'Columns & categories auto-detected' },
+                { icon: <BarChart3 size={16} />, t: 'Full Dashboard', d: 'Charts, KPIs & donor insights' },
+              ].map(({ icon, t, d }, i) => (
+                <div key={t}
+                  className="animate-fade-up"
+                  style={{
+                    padding: '18px 16px', background: 'var(--surface)',
+                    border: '1px solid var(--border)', borderRadius: 'var(--radius)',
+                    boxShadow: 'var(--shadow-sm)',
+                    transition: 'transform 160ms ease, box-shadow 160ms ease',
+                    animationDelay: `${i * 60}ms`,
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLDivElement).style.boxShadow = 'var(--shadow)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = ''; (e.currentTarget as HTMLDivElement).style.boxShadow = 'var(--shadow-sm)'; }}
+                >
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 9, marginBottom: 10,
+                    background: 'var(--green-bg)', border: '1px solid var(--green-ring)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: 'var(--green)',
+                  }}>{icon}</div>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>{t}</p>
+                  <p style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.6 }}>{d}</p>
                 </div>
               ))}
             </div>
@@ -418,12 +495,12 @@ export function LandingPage() {
       </main>
 
       <footer style={{
-        padding: '11px 24px', borderTop: '1px solid var(--border)',
+        padding: '14px 24px', borderTop: '1px solid var(--border)',
         background: 'var(--surface)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-        fontSize: 12, color: 'var(--text3)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+        fontSize: 12, color: 'var(--text3)', fontWeight: 500,
       }}>
-        <Shield size={11} color="var(--green)" />
+        <Shield size={12} color="var(--green)" />
         All data stays in your browser — nothing is uploaded to any server.
       </footer>
     </div>
