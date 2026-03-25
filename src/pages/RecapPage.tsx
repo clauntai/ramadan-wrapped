@@ -516,7 +516,7 @@ export function RecapPage() {
           {[
             { l: 'Transactions', v: count.toLocaleString() },
             { l: 'Avg Gift', v: formatCurrency(average, currency) },
-            { l: 'Recipient Orgs', v: donationsByOrganization.length.toString() },
+            { l: 'Giving Orgs', v: donationsByOrganization.length.toString() },
             ...(last10NightsCount > 0 ? [{ l: 'Last 10 Nights', v: formatCurrency(last10NightsTotal, currency) }] : []),
           ].map(({ l, v }) => (
             <div key={l}>
@@ -584,7 +584,7 @@ export function RecapPage() {
           {topOrganization && (
             <KpiCard
               icon={<Building2 size={13} />}
-              label="Top Recipient"
+              label="Top Giving Org"
               value={formatCurrency(topOrganization.amount, currency)}
               sub={topOrganization.name}
               delay={200}
